@@ -7,20 +7,31 @@ const router = express.Router();
 // POST /usuarios - Solo rol 1 puede insertar
 router.post('/usuarios', requireAuth([1]), async (req, res) => {
     try {
-        const { name, passaword, rol } = req.body;
+        const { id, name, passaword, rol } = req.body;
 
         // Validar campos requeridos
-        if (!name || !passaword || !rol) {
+        if (!id || !name || !passaword || !rol) {
             return res.status(400).json({
                 success: false,
-                message: 'Se requieren los campos: name, passaword, rol'
+                message: 'Se requieren los campos: id, name, passaword, rol'
+            });
+        }
+
+        // Convertir id a string para asegurar que sea texto
+        const idString = String(id);
+
+        // Validar longitud del id (máximo 255 caracteres, ajustar según tu base de datos)
+        if (idString.length > 255) {
+            return res.status(400).json({
+                success: false,
+                message: `El campo id es demasiado largo. Longitud máxima: 255 caracteres. Longitud recibida: ${idString.length}`
             });
         }
 
         // Insertar nuevo usuario
         const [result] = await pool.execute(
-            'INSERT INTO users (name, passaword, rol) VALUES (?, ?, ?)',
-            [name, passaword, rol]
+            'INSERT INTO users (id, name, passaword, rol) VALUES (?, ?, ?, ?)',
+            [idString, name, passaword, rol]
         );
 
         res.json({
@@ -30,6 +41,15 @@ router.post('/usuarios', requireAuth([1]), async (req, res) => {
 
     } catch (error) {
         console.error('Error al insertar usuario:', error);
+
+        // Manejar error específico de dato demasiado largo
+        if (error.code === 'ER_DATA_TOO_LONG') {
+            return res.status(400).json({
+                success: false,
+                message: `El campo ${error.sqlMessage.includes("'id'") ? 'id' : 'dato'} es demasiado largo para la columna en la base de datos`
+            });
+        }
+
         res.status(500).json({
             success: false,
             message: 'Error interno del servidor'
