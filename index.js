@@ -4,6 +4,7 @@ const passport = require('./config/passport');
 
 const { pool } = require('./config/database');
 const authRoutes = require('./routes/auth');
+const usuariosRoutes = require('./routes/usuarios');
 
 const app = express();
 const PORT = process.env.PORT;
@@ -16,6 +17,9 @@ app.use(passport.initialize());
 
 // Rutas de autenticación
 app.use('/auth', authRoutes);
+
+// Rutas de usuarios (protegidas)
+app.use('/', usuariosRoutes);
 
 // Endpoint que ejecuta SELECT 2+2 AS suma
 app.get('/suma', async (req, res) => {
